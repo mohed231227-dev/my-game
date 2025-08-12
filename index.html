@@ -164,13 +164,12 @@ footer{padding:12px;text-align:center;color:var(--muted);font-size:13px;margin-t
 <script>
 // ===== ضع إعدادات Firebase هنا بعد إنشاء المشروع في Console =====
 const firebaseConfig = {
-  apiKey: "AIzaSyBe2_Jgp_uUERMkNCbuSkAtJ2bGe0XEZiY",
-  authDomain: "my-game-cd178.firebaseapp.com",
-  projectId: "my-game-cd178",
-  storageBucket: "my-game-cd178.firebasestorage.app",
-  messagingSenderId: "582046400327",
-  appId: "1:582046400327:web:fe84c9da54118dc5fe5662",
-  measurementId: "G-WN5SD1W8ML"
+  apiKey: "REPLACE_API_KEY",
+  authDomain: "REPLACE_AUTH_DOMAIN",
+  projectId: "REPLACE_PROJECT_ID",
+  storageBucket: "REPLACE_STORAGE_BUCKET",
+  messagingSenderId: "REPLACE_SENDER_ID",
+  appId: "REPLACE_APP_ID"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -415,5 +414,48 @@ function toggleSound(){ localState.settings = localState.settings||{}; localStat
 if(!localState.ownedChars.includes('classic')) localState.ownedChars.push('classic');
 renderShop(); activateShopTab('chars'); updateHeaderUI();
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const gameSection = document.getElementById("gameSection");
+  const storeSection = document.getElementById("storeSection");
+  const settingsSection = document.getElementById("settingsSection");
+  const storeBtn = document.getElementById("storeBtn");
+  const settingsBtn = document.getElementById("settingsBtn");
+  const backFromStore = document.getElementById("backFromStore");
+  const backFromSettings = document.getElementById("backFromSettings");
+
+  if (storeBtn && storeSection && gameSection) {
+    storeBtn.addEventListener("click", () => {
+      gameSection.style.display = "none";
+      storeSection.style.display = "block";
+      settingsSection.style.display = "none";
+    });
+  }
+
+  if (settingsBtn && settingsSection && gameSection) {
+    settingsBtn.addEventListener("click", () => {
+      gameSection.style.display = "none";
+      settingsSection.style.display = "block";
+      storeSection.style.display = "none";
+    });
+  }
+
+  if (backFromStore) {
+    backFromStore.addEventListener("click", () => {
+      storeSection.style.display = "none";
+      gameSection.style.display = "block";
+    });
+  }
+
+  if (backFromSettings) {
+    backFromSettings.addEventListener("click", () => {
+      settingsSection.style.display = "none";
+      gameSection.style.display = "block";
+    });
+  }
+});
+</script>
+
 </body>
 </html>
