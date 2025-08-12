@@ -161,37 +161,14 @@ footer{padding:12px;text-align:center;color:var(--muted);font-size:13px;margin-t
 
 
 
-<script>
-// Global function used by inline onclick attributes to switch screens
-function showScreen(id){
-  // remove 'active' from all screens
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  // add active to target if exists
-  var el = document.getElementById(id);
-  if(el){ el.classList.add('active'); }
-  // pause game if leaving game screen
-  if(typeof game !== 'undefined' && id !== 'game'){
-    try{ cancelAnimationFrame(game.animationId); }catch(e){}
-    game.running = false;
-  }
-  // update header UI (in case)
-  try{ if(typeof updateHeaderUI === 'function') updateHeaderUI(); }catch(e){}
-}
-</script>
+
 
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
-  import { 
-    getAuth, 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    GoogleAuthProvider, 
-    signInWithPopup, 
-    signOut, 
-    onAuthStateChanged 
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBe2_Jgp_uUERMkNCbuSkAtJ2bGe0XEZiY",
@@ -206,29 +183,98 @@ function showScreen(id){
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
+  const productListEl = document.getElementById('productList');
+  let currentUser = null;
+  let userCoins = 0;
+
+  async function loadProducts() {
+    productListEl.innerHTML = "جارِ تحميل المنتجات...";
+    const snap = await getDocs(collection(db, "products"));
+    if (snap.empty) {
+      // Add sample products
+      const sample = [
+        { name: "كرة ذهبية", price: 100, image: "https://via.placeholder.com/100", ability: "سرعة +50%" },
+        { name: "كرة فضية", price: 50, image: "https://via.placeholder.com/100", ability: "قفزة أعلى" },
+        { name: "كرة نارية", price: 200, image: "https://via.placeholder.com/100", ability: "تدمير العقبات" }
+      ];
+      for (let p of sample) {
+        await setDoc(doc(collection(db, "products")), p);
+      }
+      return loadProducts();
+    } else {
+      productListEl.innerHTML = "";
+      snap.forEach(docSnap => {
+        const p = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "product";
+        div.innerHTML = \`
+          <img src="\${p.image}" width="100"><br>
+          <b>\${p.name}</b><br>
+          السعر: \${p.price} كوين<br>
+          الخاصية: \${p.ability}<br>
+          <button onclick="buyProduct('\${docSnap.id}', \${p.price})">شراء</button>
+        \`;
+        productListEl.appendChild(div);
+      });
+    }
+  }
+
+  window.buyProduct = async function(id, price) {
+    if (!currentUser) {
+      alert("يجب تسجيل الدخول أولاً");
+      return;
+    }
+    if (userCoins < price) {
+      alert("رصيدك غير كافٍ");
+      return;
+    }
+    userCoins -= price;
+    await setDoc(doc(db, "users", currentUser.uid), { coins: userCoins }, { merge: true });
+    alert("تم الشراء بنجاح!");
+    updateCoinsDisplay();
+  };
+
+  async function loadUserData() {
+    if (!currentUser) return;
+    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+    if (userDoc.exists()) {
+      userCoins = userDoc.data().coins || 0;
+    } else {
+      userCoins = 500; // starting coins
+      await setDoc(doc(db, "users", currentUser.uid), { coins: userCoins });
+    }
+    updateCoinsDisplay();
+  }
+
+  function updateCoinsDisplay() {
+    const coinsEl = document.getElementById("coinsDisplay");
+    if (coinsEl) coinsEl.textContent = "كوينز: " + userCoins;
+  }
+
   window.signup = function() {
-    const email = document.getElementById('signupEmail').value;
-    const password = document.getElementById('signupPassword').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
     createUserWithEmailAndPassword(auth, email, password)
       .then(userCredential => {
         alert("تم إنشاء الحساب بنجاح ✅");
       })
       .catch(error => {
-        alert("خطأ في إنشاء الحساب: " + error.message);
+        alert("خطأ: " + error.message);
       });
   };
 
   window.signin = function() {
-    const email = document.getElementById('signinEmail').value;
-    const password = document.getElementById('signinPassword').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
     signInWithEmailAndPassword(auth, email, password)
       .then(userCredential => {
         alert("تم تسجيل الدخول بنجاح ✅");
       })
       .catch(error => {
-        alert("خطأ في تسجيل الدخول: " + error.message);
+        alert("خطأ: " + error.message);
       });
   };
 
@@ -238,26 +284,28 @@ function showScreen(id){
         alert("تم تسجيل الدخول بحساب Google ✅");
       })
       .catch(error => {
-        alert("خطأ في تسجيل دخول Google: " + error.message);
+        alert("خطأ: " + error.message);
       });
   };
 
   window.signout = function() {
     signOut(auth).then(() => {
       alert("تم تسجيل الخروج ✅");
-    }).catch(error => {
-      alert("خطأ في تسجيل الخروج: " + error.message);
     });
   };
 
-  onAuthStateChanged(auth, (user) => {
-    const headerUser = document.getElementById('headerUser');
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
     if (user) {
-      headerUser.textContent = user.email;
+      document.getElementById('headerUser').textContent = user.email;
+      await loadUserData();
+      await loadProducts();
     } else {
-      headerUser.textContent = "غير مسجل";
+      document.getElementById('headerUser').textContent = "غير مسجل";
+      productListEl.innerHTML = "سجّل الدخول لعرض المنتجات";
     }
   });
+
 </script>
 
 </body>
