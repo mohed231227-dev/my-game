@@ -179,5 +179,86 @@ function showScreen(id){
 }
 </script>
 
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+  import { 
+    getAuth, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    signOut, 
+    onAuthStateChanged 
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBe2_Jgp_uUERMkNCbuSkAtJ2bGe0XEZiY",
+    authDomain: "my-game-cd178.firebaseapp.com",
+    projectId: "my-game-cd178",
+    storageBucket: "my-game-cd178.appspot.com",
+    messagingSenderId: "582046400327",
+    appId: "1:582046400327:web:fe84c9da54118dc5fe5662",
+    measurementId: "G-WN5SD1W8ML"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  window.signup = function() {
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(userCredential => {
+        alert("تم إنشاء الحساب بنجاح ✅");
+      })
+      .catch(error => {
+        alert("خطأ في إنشاء الحساب: " + error.message);
+      });
+  };
+
+  window.signin = function() {
+    const email = document.getElementById('signinEmail').value;
+    const password = document.getElementById('signinPassword').value;
+    signInWithEmailAndPassword(auth, email, password)
+      .then(userCredential => {
+        alert("تم تسجيل الدخول بنجاح ✅");
+      })
+      .catch(error => {
+        alert("خطأ في تسجيل الدخول: " + error.message);
+      });
+  };
+
+  window.googleSignIn = function() {
+    signInWithPopup(auth, provider)
+      .then(result => {
+        alert("تم تسجيل الدخول بحساب Google ✅");
+      })
+      .catch(error => {
+        alert("خطأ في تسجيل دخول Google: " + error.message);
+      });
+  };
+
+  window.signout = function() {
+    signOut(auth).then(() => {
+      alert("تم تسجيل الخروج ✅");
+    }).catch(error => {
+      alert("خطأ في تسجيل الخروج: " + error.message);
+    });
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    const headerUser = document.getElementById('headerUser');
+    if (user) {
+      headerUser.textContent = user.email;
+    } else {
+      headerUser.textContent = "غير مسجل";
+    }
+  });
+</script>
+
 </body>
 </html>
