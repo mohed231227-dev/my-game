@@ -415,47 +415,7 @@ if(!localState.ownedChars.includes('classic')) localState.ownedChars.push('class
 renderShop(); activateShopTab('chars'); updateHeaderUI();
 </script>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const gameSection = document.getElementById("gameSection");
-  const storeSection = document.getElementById("storeSection");
-  const settingsSection = document.getElementById("settingsSection");
-  const storeBtn = document.getElementById("storeBtn");
-  const settingsBtn = document.getElementById("settingsBtn");
-  const backFromStore = document.getElementById("backFromStore");
-  const backFromSettings = document.getElementById("backFromSettings");
 
-  if (storeBtn && storeSection && gameSection) {
-    storeBtn.addEventListener("click", () => {
-      gameSection.style.display = "none";
-      storeSection.style.display = "block";
-      settingsSection.style.display = "none";
-    });
-  }
-
-  if (settingsBtn && settingsSection && gameSection) {
-    settingsBtn.addEventListener("click", () => {
-      gameSection.style.display = "none";
-      settingsSection.style.display = "block";
-      storeSection.style.display = "none";
-    });
-  }
-
-  if (backFromStore) {
-    backFromStore.addEventListener("click", () => {
-      storeSection.style.display = "none";
-      gameSection.style.display = "block";
-    });
-  }
-
-  if (backFromSettings) {
-    backFromSettings.addEventListener("click", () => {
-      settingsSection.style.display = "none";
-      gameSection.style.display = "block";
-    });
-  }
-});
-</script>
 
 </body>
 </html>
