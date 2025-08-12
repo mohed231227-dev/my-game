@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>لعبة الكرة — سحابي + متجر</title>
+<style>
+:root{--bg:#0f1112;--panel:#17191a;--muted:#bfbfbf;--accent:#ffd166}
+*{box-sizing:border-box}
+body{margin:0;font-family:Tahoma, Arial, sans-serif;background:var(--bg);color:#fff;direction:rtl}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:linear-gradient(90deg,#0b0b0b,#141414);border-bottom:1px solid #242424}
+header h1{margin:0;font-size:18px}
+.balance{font-size:14px;color:var(--muted)}
+main{padding:16px}
+.screen{display:none}
+.active{display:block}
+.panel{background:var(--panel);padding:12px;border-radius:8px;border:1px solid #232425;max-width:1024px;margin:0 auto}
+.menu{display:flex;gap:12px;flex-direction:column;align-items:center}
+button{background:#252627;color:#fff;padding:10px 14px;border-radius:8px;border:1px solid #2f3031;cursor:pointer}
+button.secondary{background:transparent;border:1px solid #2f3031;color:var(--muted)}
+.small{padding:6px 10px;font-size:13px}
+canvas{display:block;margin:12px auto;border-radius:6px;border:3px solid #222;background:linear-gradient(#2b2b2b,#212121)}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.muted{color:var(--muted)}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{padding:8px 12px;border-radius:8px;background:#222;border:1px solid #2a2a2a;cursor:pointer}
+.tab.active{background:linear-gradient(#2f2f2f,#272727)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.card{background:#1e1f20;padding:10px;border-radius:8px;border:1px solid #2a2a2a}
+.charPreview{width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#111}
+.stat{font-size:13px;color:var(--muted);margin-top:6px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:40}
+.modal{background:#111;padding:18px;border-radius:10px;border:1px solid #2a2a2a;min-width:320px;text-align:center}
+input[type="text"],input[type="email"],input[type="password"]{padding:8px 10px;border-radius:6px;border:1px solid #333;background:#121212;color:#fff;margin-left:8px}
+footer{padding:12px;text-align:center;color:var(--muted);font-size:13px;margin-top:12px}
+.buyBtn{background:#2e7d32}
+.disabled{opacity:0.5;pointer-events:none}
+.detailImg{width:180px;height:120px;object-fit:cover;border-radius:8px;background:#222}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>لعبتي — الكرة القافزة</h1>
+  <div>
+    <span id="headerUser" class="muted">لا يوجد حساب</span>
+    &nbsp;&nbsp;
+    <span id="headerBalance" class="balance">الكوينز: 0</span>
+  </div>
+</header>
+
+<main>
+  <section id="mainMenu" class="screen active">
+    <div class="panel menu">
+      <h2>القائمة الرئيسية</h2>
+      <div class="row" style="justify-content:center;width:100%">
+        <button id="btnStart">ابدأ اللعبة</button>
+        <button onclick="showScreen('shop')" class="secondary">المتجر</button>
+        <button onclick="showScreen('settings')" class="secondary">الإعدادات</button>
+      </div>
+      <p class="muted">يجب تسجيل الدخول للعب أو استخدام النسخة المحلية.</p>
+    </div>
+  </section>
+
+  <section id="shop" class="screen">
+    <div class="panel">
+      <h2>🛒 المتجر</h2>
+      <div class="tabs" role="tablist">
+        <div id="tabChars" class="tab active" onclick="activateShopTab('chars')">أ — شخصيات</div>
+        <div id="tabAbilities" class="tab" onclick="activateShopTab('abilities')">ب — قدرات</div>
+      </div>
+
+      <div id="shopChars" class="shopSection">
+        <div class="grid" id="charsGrid"></div>
+      </div>
+
+      <div id="shopAbilities" class="shopSection" style="display:none">
+        <div class="grid" id="abilitiesGrid"></div>
+      </div>
+
+      <div style="margin-top:12px;text-align:center">
+        <button onclick="showScreen('mainMenu')" class="secondary">رجوع</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings" class="screen">
+    <div class="panel">
+      <h2>⚙️ الإعدادات</h2>
+
+      <div style="margin-bottom:12px">
+        <h3>تسجيل / تسجيل دخول</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="email" type="email" placeholder="الإيميل">
+          <input id="password" type="password" placeholder="كلمة المرور">
+          <button onclick="signup()" class="small">تسجيل</button>
+          <button onclick="signin()" class="small">تسجيل دخول</button>
+          <button onclick="googleSignIn()" class="small">تسجيل بجوجل</button>
+          <button onclick="signout()" class="small secondary">تسجيل خروج</button>
+        </div>
+        <div id="accountInfo" class="muted" style="margin-top:8px">لا يوجد حساب متصل</div>
+      </div>
+
+      <div style="margin-top:8px">
+        <h3>الصوت</h3>
+        <button onclick="toggleSound()" class="small">تشغيل/إيقاف الصوت</button>
+        <div id="soundInfo" class="muted" style="margin-top:6px">الصوت: مفعل</div>
+      </div>
+
+      <div style="margin-top:12px" class="center">
+        <button onclick="showScreen('mainMenu')" class="secondary">رجوع</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="game" class="screen">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div>المسافة: <span id="distanceDisplay">0</span></div>
+        <div>الكوينز: <span id="coinsDisplay">0</span></div>
+        <div>الشخصية: <span id="activeCharName">افتراضي</span></div>
+      </div>
+      <canvas id="gameCanvas" width="900" height="380"></canvas>
+
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <button id="btnEnd" class="secondary">القائمة</button>
+        <button id="btnPause" class="secondary">إيقاف</button>
+        <div class="muted">ملاحظة: اضغط Space للقفز</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="detailModal" class="overlay" style="display:none">
+  <div class="modal" id="detailContent">
+    <h3 id="detailTitle">تفاصيل</h3>
+    <img id="detailImg" class="detailImg" src="" alt="image">
+    <p id="detailDesc" class="muted"></p>
+    <div style="margin-top:8px">
+      <button id="detailBuyBtn" class="buyBtn">اشتري</button>
+      <button onclick="closeDetail()" class="secondary">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<div id="gameOver" class="overlay" style="display:none">
+  <div class="modal">
+    <h3>انتهت اللعبة</h3>
+    <p id="goStats" class="muted">المسافة: 0 — الكوينز المكتسبة: 0</p>
+    <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+      <button id="retryBtn">إعادة المحاولة</button>
+      <button onclick="closeGameOver()" class="secondary">القائمة الرئيسية</button>
+    </div>
+  </div>
+</div>
+
+<footer>مشروع جاهز للتشغيل محليًا أو رفعه على Netlify/GitHub Pages</footer>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+// ===== ضع إعدادات Firebase هنا بعد إنشاء المشروع في Console =====
+const firebaseConfig = {
+  apiKey: "REPLACE_API_KEY",
+  authDomain: "REPLACE_AUTH_DOMAIN",
+  projectId: "REPLACE_PROJECT_ID",
+  storageBucket: "REPLACE_STORAGE_BUCKET",
+  messagingSenderId: "REPLACE_SENDER_ID",
+  appId: "REPLACE_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* assets sfx paths (WAV included in package) */
+const SFX = {
+  coin: 'assets/sfx/coin.wav',
+  jump: 'assets/sfx/jump.wav',
+  buy:  'assets/sfx/buy.wav',
+  error:'assets/sfx/error.wav',
+  shield:'assets/sfx/shield.wav',
+  revive:'assets/sfx/revive.wav'
+};
+const audio = {};
+for(let k in SFX){ audio[k] = new Audio(SFX[k]); }
+
+/* local + cloud state (simple) */
+const STORAGE_LOCAL = 'g_local_state_v2';
+function defaultPlayerData(){ return {
+  coins:0, ownedChars:['classic'], ownedAbilities:[], activeChar:'classic', activeAbilities:[], settings:{soundOn:true}
+};}
+let localState = JSON.parse(localStorage.getItem(STORAGE_LOCAL) || 'null') || defaultPlayerData();
+
+/* UI refs */
+const headerUser = document.getElementById('headerUser'), headerBalance = document.getElementById('headerBalance');
+const coinsDisplay = document.getElementById('coinsDisplay'), distanceDisplay = document.getElementById('distanceDisplay');
+const activeCharName = document.getElementById('activeCharName');
+
+/* characters & abilities (same as discussed) */
+const CHARACTERS = [
+  { id:'classic', name:'الكلاسيكي', price:0, speedPct:100, jumpPct:100, sizePct:100, color:'#ffd166', extra:{} },
+  { id:'swift',   name:'السريع',    price:150, speedPct:150, jumpPct:90,  sizePct:100, color:'#7beaff', extra:{} },
+  { id:'jumper',  name:'القافز',    price:200, speedPct:100, jumpPct:150, sizePct:100, color:'#ff7ab8', extra:{} },
+  { id:'tiny',    name:'الصغير',    price:250, speedPct:100, jumpPct:100, sizePct:70,  color:'#9eff7a', extra:{} },
+  { id:'armored', name:'المدرع',    price:300, speedPct:100, jumpPct:100, sizePct:100, color:'#ff9466', extra:{ shieldOnStart:8 } },
+  { id:'pro',     name:'البرو',     price:500, speedPct:180, jumpPct:160, sizePct:90,  color:'#d79bff', extra:{} }
+];
+function getCharById(id){ return CHARACTERS.find(c=>c.id===id) || CHARACTERS[0]; }
+
+const ABILITIES = [
+  { id:'spd15', name:'سرعة +15%', price:100, desc:'يزيد سرعة اللاعب 15% لمدة 15 ثانية', effect:{ speedBonusPct:15 }, type:'consumable', durationSec:15 },
+  { id:'jmp30', name:'قوة قفز +30%', price:120, desc:'يزيد القفز +30% طوال الجولة (دائم)', effect:{ jumpBonusPct:30 }, type:'permanent' },
+  { id:'small80', name:'حجم 80%', price:80, desc:'يصغر الحجم إلى 80% طوال الجولة (دائم)', effect:{ sizePct:80 }, type:'permanent' },
+  { id:'shield8', name:'درع 8ث', price:150, desc:'درع يحميك لمدة 8 ثوانٍ', effect:{ shieldSec:8 }, type:'consumable', durationSec:8 },
+  { id:'doubleJump', name:'قفزة مزدوجة', price:200, desc:'يسمح بقفزة إضافية أثناء الهوى (دائم)', effect:{ doubleJump:true }, type:'permanent' },
+  { id:'magnet', name:'مغناطيس 10ث', price:150, desc:'يجذب الكوينز القريبة لمدة 10 ثوانٍ', effect:{ magnet:true }, type:'consumable', durationSec:10 },
+  { id:'slowTime', name:'إبطاء 5ث', price:180, desc:'يبطئ العقبات بنسبة 50% لمدة 5 ثوانٍ', effect:{ slowPct:50 }, type:'consumable', durationSec:5 },
+  { id:'revive', name:'استعادة الحياة', price:120, desc:'ترجعك بعد الاصطدام مرة واحدة في الجولة', effect:{ revive:true }, type:'consumable', durationSec:0 }
+];
+function getAbilityById(id){ return ABILITIES.find(a=>a.id===id); }
+
+/* render shop */
+const charsGrid = document.getElementById('charsGrid'), abilitiesGrid = document.getElementById('abilitiesGrid');
+function renderShop(){
+  charsGrid.innerHTML=''; abilitiesGrid.innerHTML='';
+  const data = localState;
+  CHARACTERS.forEach(c=>{
+    const owned = data.ownedChars.includes(c.id) || c.price===0;
+    const active = data.activeChar === c.id;
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-weight:bold">${c.name}</div>
+        <div class="muted stat">السعر: ${c.price}</div>
+        <div class="muted stat">سرعة: ${c.speedPct}%</div>
+        <div class="muted stat">قفز: ${c.jumpPct}%</div>
+        <div class="muted stat">حجم: ${c.sizePct}%</div>
+        ${c.extra.shieldOnStart?`<div class="muted stat">درع بداية ${c.extra.shieldOnStart} ث</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div class="charPreview" style="background:${c.color};color:#111">${c.name[0]||'؟'}</div>
+        ${owned?`<div class="muted">مملوكة</div>`:`<div class="muted">مطلوب: ${c.price}</div>`}
+      </div></div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        ${owned?`<button class="small" onclick="selectChar('${c.id}')">${active?'محدد':'تحديد'}</button>`:
+        `<button class="small buyBtn" onclick="openDetail('char','${c.id}')">اشتري</button>`}
+        ${!owned && data.coins < c.price ? `<div class="muted">لا يكفي</div>` : ''}
+      </div>`;
+    charsGrid.appendChild(card);
+  });
+
+  ABILITIES.forEach(a=>{
+    const owned = data.ownedAbilities.includes(a.id);
+    const active = data.activeAbilities.includes(a.id);
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px">
+      <div><div style="font-weight:bold">${a.name}</div><div class="muted stat">${a.desc}</div><div class="muted stat">السعر: ${a.price}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div class="charPreview" style="background:#ccc;color:#111">${a.name[0]||'؟'}</div>
+        <div class="muted" style="font-size:12px">${a.type}</div>
+      </div></div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+      ${owned?`<button class="small" onclick="toggleAbilityActive('${a.id}')">${active?'إلغاء التفعيل':'تفعيل'}</button>`:
+      `<button class="small buyBtn" onclick="openDetail('ability','${a.id}')">اشتري</button>`}
+      </div>`;
+    abilitiesGrid.appendChild(card);
+  });
+}
+
+/* detail modal */
+function openDetail(kind,id){
+  const modal = document.getElementById('detailModal');
+  document.getElementById('detailBuyBtn').onclick = ()=>{ detailBuy(kind,id); };
+  if(kind==='char'){
+    const c = CHARACTERS.find(x=>x.id===id);
+    document.getElementById('detailTitle').innerText = c.name;
+    document.getElementById('detailDesc').innerText = `السعر: ${c.price} — سرعة ${c.speedPct}%, قفز ${c.jumpPct}%, حجم ${c.sizePct}%`;
+    document.getElementById('detailImg').src = '';
+    document.getElementById('detailBuyBtn').innerText = 'اشتري';
+  } else {
+    const a = getAbilityById(id);
+    document.getElementById('detailTitle').innerText = a.name;
+    document.getElementById('detailDesc').innerText = `${a.desc} — السعر: ${a.price}`;
+    document.getElementById('detailImg').src = '';
+    document.getElementById('detailBuyBtn').innerText = 'اشتري';
+  }
+  modal.style.display='flex';
+}
+function closeDetail(){ document.getElementById('detailModal').style.display='none'; }
+function detailBuy(kind,id){ closeDetail(); if(kind==='char') buyChar(id); else buyAbility(id); }
+
+/* buy / select / toggle */
+function buyChar(id){
+  const c = CHARACTERS.find(x=>x.id===id);
+  if(localState.coins < c.price){ playSfx('error'); alert('لا يوجد رصيد كافٍ'); return; }
+  if(!confirm(`شراء ${c.name} بسعر ${c.price} كوين؟`)) return;
+  localState.coins -= c.price; localState.ownedChars.push(id); saveStateCloudOrLocal(); playSfx('buy'); renderShop(); updateHeaderUI();
+}
+function selectChar(id){ if(!localState.ownedChars.includes(id) && id!=='classic'){ alert('يجب شراء الشخصية'); return; } localState.activeChar=id; saveStateCloudOrLocal(); renderShop(); updateHeaderUI(); }
+function buyAbility(id){ const a = getAbilityById(id); if(localState.coins < a.price){ playSfx('error'); alert('لا يوجد رصيد كافٍ'); return; } if(!confirm(`شراء ${a.name} بسعر ${a.price} كوين؟`)) return; localState.coins -= a.price; localState.ownedAbilities.push(id); saveStateCloudOrLocal(); playSfx('buy'); renderShop(); updateHeaderUI(); }
+function toggleAbilityActive(id){ const idx = localState.activeAbilities.indexOf(id); if(idx===-1) localState.activeAbilities.push(id); else localState.activeAbilities.splice(idx,1); saveStateCloudOrLocal(); renderShop(); updateHeaderUI(); }
+
+/* sfx */
+function playSfx(name){ if(!localState.settings || localState.settings.soundOn === false) return; if(audio[name]){ try{ audio[name].currentTime=0; audio[name].play(); }catch(e){} } }
+
+/* Cloud sync: save local state then push to Firestore if logged in */
+async function saveStateCloudOrLocal(){
+  localStorage.setItem(STORAGE_LOCAL, JSON.stringify(localState));
+  if(auth.currentUser){
+    try{
+      await db.collection('users').doc(auth.currentUser.uid).set(localState, { merge:true });
+    }catch(err){ console.error('save cloud err',err); }
+  }
+}
+async function loadStateFromCloud(uid){
+  try{
+    const docRef = db.collection('users').doc(uid);
+    const snap = await docRef.get();
+    if(snap.exists){ localState = Object.assign(defaultPlayerData(), snap.data()); localStorage.setItem(STORAGE_LOCAL, JSON.stringify(localState)); renderShop(); updateHeaderUI(); }
+    else { await docRef.set(localState); }
+  }catch(err){ console.error('load cloud err',err); }
+}
+
+/* Auth flows */
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    headerUser.innerText = `المستخدم: ${user.email}`; accountInfo.innerText = `متصل: ${user.email}`;
+    await loadStateFromCloud(user.uid);
+  } else {
+    headerUser.innerText = 'لا يوجد حساب'; accountInfo.innerText = 'لا يوجد حساب متصل';
+    localState = JSON.parse(localStorage.getItem(STORAGE_LOCAL) || 'null') || defaultPlayerData();
+  }
+  updateHeaderUI(); renderShop();
+});
+
+async function signup(){ const email=document.getElementById('email').value.trim(); const pw=document.getElementById('password').value.trim(); if(!email||!pw){ alert('الإيميل وكلمة المرور مطلوبين'); return; } try{ const userCred = await auth.createUserWithEmailAndPassword(email,pw); await db.collection('users').doc(userCred.user.uid).set(localState); alert('تم إنشاء الحساب'); }catch(err){ alert('خطأ: '+err.message); } }
+async function signin(){ const email=document.getElementById('email').value.trim(); const pw=document.getElementById('password').value.trim(); if(!email||!pw){ alert('الإيميل وكلمة المرور مطلوبين'); return; } try{ await auth.signInWithEmailAndPassword(email,pw); alert('تم تسجيل الدخول'); }catch(err){ alert('خطأ: '+err.message); } }
+function signout(){ auth.signOut().then(()=>{ alert('تم تسجيل الخروج'); }); }
+
+/* Google Sign-In */
+async function googleSignIn(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try{
+    const res = await auth.signInWithPopup(provider);
+    alert('تم تسجيل الدخول بواسطة Google: ' + res.user.email);
+  }catch(err){ alert('خطأ جوجل: '+err.message); }
+}
+
+/* ================== Game core (مبسط من النسخة السابقة) ================== */
+const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
+let game = { running:false, distance:0, coinsCollectedThisRun:0, player:null, obstacles:[], coins:[], baseObstacleSpeed:5, obstacleSpeed:5, spawnTimer:0, coinTimer:0, animationId:null, paused:false, shieldActiveUntil:0, doubleJumpAvailable:false, reviveAvailable:false, magnetActiveUntil:0, slowActiveUntil:0 };
+
+function resetRun(){
+  const ch = getCharById(localState.activeChar || 'classic');
+  let speedPct = ch.speedPct, jumpPct = ch.jumpPct, sizePct = ch.sizePct;
+  // permanent abilities
+  localState.ownedAbilities.forEach(aid=>{ const a=getAbilityById(aid); if(!a) return; if(a.type==='permanent'){ if(a.effect.jumpBonusPct) jumpPct += a.effect.jumpBonusPct; if(a.effect.sizePct) sizePct=(sizePct*a.effect.sizePct)/100; if(a.effect.doubleJump) game.doubleJumpEnabled=true; }});
+  game.doubleJumpEnabled = !!(localState.activeAbilities.includes('doubleJump') || game.doubleJumpEnabled);
+  if(localState.activeAbilities.includes('revive')) game.reviveAvailable = true;
+  const sizeMultiplier = sizePct / 100;
+  game.player = { x:110, radius:20 * sizeMultiplier, y: canvas.height - 20 - (20 * sizeMultiplier), dy:0, gravity:0.8, jumpPower: -12 * (jumpPct / 100), grounded:true, color: ch.color };
+  game.obstacles = []; game.coins = []; game.distance = 0; game.coinsCollectedThisRun=0; game.spawnTimer=0; game.coinTimer=0; game.running=true; game.paused=false;
+  game.obstacleSpeed = game.baseObstacleSpeed * (100 / Math.max(30, speedPct));
+  const now = Date.now();
+  if(localState.activeAbilities.includes('shield8')) game.shieldActiveUntil = now + (getAbilityById('shield8').durationSec*1000);
+  if(localState.activeAbilities.includes('magnet')) game.magnetActiveUntil = now + (getAbilityById('magnet').durationSec*1000);
+  if(localState.activeAbilities.includes('spd15')) game.spdActiveUntil = now + (getAbilityById('spd15').durationSec*1000);
+  if(localState.activeAbilities.includes('slowTime')) game.slowActiveUntil = now + (getAbilityById('slowTime').durationSec*1000);
+  if(game.slowActiveUntil > now) game.obstacleSpeed *= (100 - getAbilityById('slowTime').effect.slowPct)/100;
+}
+
+document.addEventListener('keydown',(e)=>{ if(!game.running) return; if(e.code==='Space' || e.code==='ArrowUp'){ if(game.player.grounded){ game.player.dy = game.player.jumpPower; game.player.grounded=false; playSfx('jump'); } else if(game.doubleJumpEnabled && !game.doubleJumpUsed){ game.player.dy = game.player.jumpPower * 0.9; game.doubleJumpUsed = true; playSfx('jump'); } } if(e.code==='KeyP') togglePause(); });
+
+function drawGround(){ ctx.fillStyle='#2b2b2b'; ctx.fillRect(0,canvas.height-20,canvas.width,20); }
+function drawPlayer(){ ctx.beginPath(); ctx.fillStyle = game.player.color||'#ffd166'; ctx.arc(game.player.x, game.player.y, game.player.radius, 0, Math.PI*2); ctx.fill(); ctx.closePath(); if(game.shieldActiveUntil > Date.now()){ ctx.beginPath(); ctx.strokeStyle='#66ccff'; ctx.lineWidth=4; ctx.arc(game.player.x, game.player.y, game.player.radius+8, 0, Math.PI*2); ctx.stroke(); ctx.closePath(); } }
+
+function spawnObstacle(){ const moving = Math.random() < 0.45; const radius = 16 + Math.floor(Math.random()*14); const yBase = canvas.height - 20 - radius; const y = moving ? yBase - (Math.random()*60) : yBase; game.obstacles.push({ x: canvas.width + radius, y, baseY: y, radius, moving, dir: (Math.random()>0.5?1:-1) }); }
+function spawnCoin(){ const radius = 8; const y = (canvas.height - 20) - (40 + Math.random()*18); game.coins.push({ x: canvas.width + radius, y, radius }); }
+
+function updatePlayer(){ game.player.y += game.player.dy; game.player.dy += game.player.gravity; const groundY = canvas.height - 20 - game.player.radius; if(game.player.y > groundY){ game.player.y = groundY; game.player.dy = 0; game.player.grounded = true; game.doubleJumpUsed = false; } }
+function updateObstacles(){ game.spawnTimer++; if(game.spawnTimer > 90){ spawnObstacle(); game.spawnTimer = 0; } for(let o of game.obstacles){ o.x -= game.obstacleSpeed; if(o.moving){ o.y += o.dir * 1.8; if(o.y > o.baseY || o.y < o.baseY - 80) o.dir *= -1; } } game.obstacles = game.obstacles.filter(o=>o.x + o.radius > -50); }
+function updateCoins(){ game.coinTimer++; if(game.coinTimer > 120){ spawnCoin(); game.coinTimer = 0; } const magnetOn = game.magnetActiveUntil > Date.now(); for(let c of game.coins){ c.x -= game.obstacleSpeed; if(magnetOn){ const dx = game.player.x - c.x; const dist = Math.abs(dx); if(dist < 160) c.x += dx * 0.06; } } game.coins = game.coins.filter(c=>c.x + c.radius > -50); }
+
+function collide(ax,ay,ar,bx,by,br){ const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy < (ar+br)*(ar+br); }
+function checkCollisions(){ for(let i=game.coins.length-1;i>=0;i--){ const c=game.coins[i]; if(collide(game.player.x,game.player.y,game.player.radius,c.x,c.y,c.radius)){ game.coins.splice(i,1); game.coinsCollectedThisRun++; localState.coins += 1; saveStateCloudOrLocal(); updateHeaderUI(); playSfx('coin'); } } for(let o of game.obstacles){ if(collide(game.player.x,game.player.y,game.player.radius,o.x,o.y,o.radius)){ if(game.shieldActiveUntil > Date.now()){ game.shieldActiveUntil = 0; playSfx('shield'); return; } if(game.reviveAvailable){ game.reviveAvailable = false; playSfx('revive'); game.shieldActiveUntil = Date.now() + 2000; return; } endRun(); return; } } }
+
+function updateDistance(){ game.distance++; distanceDisplay.innerText = game.distance; }
+function render(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawGround(); for(let c of game.coins){ ctx.beginPath(); ctx.fillStyle='#ffd24d'; ctx.arc(c.x,c.y,c.radius,0,Math.PI*2); ctx.fill(); ctx.closePath(); } for(let o of game.obstacles){ ctx.beginPath(); ctx.fillStyle='#ff6b6b'; ctx.arc(o.x,o.y,o.radius,0,Math.PI*2); ctx.fill(); ctx.closePath(); } drawPlayer(); }
+
+function gameLoop(){ if(!game.running || game.paused) return; updatePlayer(); updateObstacles(); updateCoins(); checkCollisions(); updateDistance(); render(); game.animationId = requestAnimationFrame(gameLoop); }
+
+function startGame(){ if(!auth.currentUser){ alert('سجّل دخول أولاً'); showScreen('settings'); return; } resetRun(); showScreen('game'); renderShop(); updateHeaderUI(); cancelAnimationFrame(game.animationId); game.animationId = requestAnimationFrame(gameLoop); }
+function endRun(){ game.running=false; cancelAnimationFrame(game.animationId); document.getElementById('goStats').innerText = `المسافة: ${game.distance} — الكوينز المكتسبة: ${game.coinsCollectedThisRun}`; document.getElementById('gameOver').style.display='flex'; }
+function closeGameOver(){ document.getElementById('gameOver').style.display='none'; showScreen('mainMenu'); updateHeaderUI(); }
+function retryRun(){ document.getElementById('gameOver').style.display='none'; startGame(); }
+function togglePause(){ game.paused = !game.paused; if(!game.paused) requestAnimationFrame(gameLoop); document.getElementById('btnPause').innerText = game.paused ? 'استئناف' : 'إيقاف'; }
+
+document.getElementById('btnStart').addEventListener('click', startGame);
+document.getElementById('btnEnd').addEventListener('click', ()=>{ game.running=false; cancelAnimationFrame(game.animationId); showScreen('mainMenu'); });
+document.getElementById('btnPause').addEventListener('click', togglePause);
+document.getElementById('retryBtn').addEventListener('click', retryRun);
+document.getElementById('gameOver').addEventListener('click',(e)=>{ if(e.target.id==='gameOver') closeGameOver(); });
+
+function activateShopTab(t){ document.getElementById('tabChars').classList.remove('active'); document.getElementById('tabAbilities').classList.remove('active'); document.getElementById('shopChars').style.display='none'; document.getElementById('shopAbilities').style.display='none'; if(t==='chars'){ document.getElementById('tabChars').classList.add('active'); document.getElementById('shopChars').style.display='block'; } else { document.getElementById('tabAbilities').classList.add('active'); document.getElementById('shopAbilities').style.display='block'; } }
+
+function updateHeaderUI(){ headerUser.innerText = auth.currentUser ? `المستخدم: ${auth.currentUser.email}` : 'لا يوجد حساب'; headerBalance.innerText = 'الكوينز: ' + (localState.coins||0); coinsDisplay.innerText = localState.coins; activeCharName.innerText = getCharById(localState.activeChar).name; accountInfo.innerText = auth.currentUser ? `متصل: ${auth.currentUser.email}` : 'لا يوجد حساب'; soundInfo.innerText = 'الصوت: ' + ((localState.settings && localState.settings.soundOn) ? 'مفعل' : 'معطّل'); }
+
+function toggleSound(){ localState.settings = localState.settings||{}; localState.settings.soundOn = !localState.settings.soundOn; saveStateCloudOrLocal(); updateHeaderUI(); playSfx('buy'); }
+
+/* init */
+if(!localState.ownedChars.includes('classic')) localState.ownedChars.push('classic');
+renderShop(); activateShopTab('chars'); updateHeaderUI();
+</script>
+</body>
+</html>
